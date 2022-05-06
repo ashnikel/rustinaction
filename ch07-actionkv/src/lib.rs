@@ -11,7 +11,6 @@ use serde_derive::{Deserialize, Serialize};
 
 type ByteString = Vec<u8>;
 type ByteStr = [u8];
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KeyValuePair {
     pub key: ByteString,
@@ -77,9 +76,9 @@ impl ActionKV {
             let maybe_kv = ActionKV::process_record(&mut f);
             let kv = match maybe_kv {
                 Ok(kv) => kv,
-                Err(e) => match err.kind() {
+                Err(err) => match err.kind() {
                     io::ErrorKind::UnexpectedEof => break,
-                    _ => return Err(e),
+                    _ => return Err(err),
                 },
             };
 
@@ -137,7 +136,14 @@ impl ActionKV {
         Ok(found)
     }
 
-    pub fn insert(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<u64> {
+    pub fn insert(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<()> {
+        let position = self.insert_but_ignore_index(key,value)?;
+
+        self.index.insert(key.to_vec(), position);
+        Ok(())
+    }
+
+    pub fn insert_but_ignore_index(&mut self, key: &ByteStr, value: &ByteStr) -> io::Result<u64> {
         let mut f = BufWriter::new(&mut self.f);
 
         let key_len = key.len();
