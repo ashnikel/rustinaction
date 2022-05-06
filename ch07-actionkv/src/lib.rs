@@ -44,7 +44,7 @@ impl ActionKV {
         let mut data = ByteString::with_capacity(data_len as usize);
 
         {
-            f.take(data_len as u64).read_to_end(&mut data)?;
+            f.by_ref().take(data_len as u64).read_to_end(&mut data)?;
         }
 
         debug_assert_eq!(data.len(), data_len as usize);
