@@ -70,7 +70,9 @@ impl From<DateTime<Utc>> for NTPTimestamp {
 
 impl NTPMessage {
     fn new() -> Self {
-        NTPMessage { data: [0; NTP_MESSAGE_LENGTH] }
+        NTPMessage {
+            data: [0; NTP_MESSAGE_LENGTH],
+        }
     }
 
     fn client() -> Self {
@@ -82,8 +84,51 @@ impl NTPMessage {
         msg.data[0] |= VERSION;
         msg.data[0] |= MODE;
         msg
-        ffffffff
     }
+
+    fn parse_timestamp(&self, i: usize) -> Result<NTPTimestamp, std::io::Error> {
+        let mut reader = &self.data[i..i + 8];
+        let seconds = reader.read_u32::<BigEndian>()?;
+        let fraction = reader.read_u32::<BigEndian>()?;
+
+        Ok(NTPTimestamp {
+            seconds: seconds,
+            fraction: fraction,
+        })
+    }
+
+    fn rx_time(&self) -> Result<NTPTimestamp, std::io::Error> {
+        self.parse_timestamp(32)
+    }
+
+    fn tx_time(&self) -> Result<NTPTimestamp, std::io::Error> {
+        self.parse_timestamp(40)
+    }
+}
+
+fn weighted_mean(values: &[f64], weights: &[f64]) -> f64 {
+    let mut result = 0.0;
+    let mut sum_of_weights = 0.0;
+
+    for (v, w) in values.iter().zip(weights) { // iter
+        result += v * w;
+        sum_of_weights += w;
+    }
+
+    result / sum_of_weights
+}
+
+fn ntp_roundtrip(host: &str, port: u16) -> Result<NTPResult, std::io:Error> {
+    let destination = format!("{}:{}", host, port);
+    let timeout = Duration::from_secs(1);
+
+    let request = NTPMessage::client();
+    let mut response = NTPMessage::new();
+
+    let message = request.data;
+
+    let udp  = UdpSocket::bind(LOCAL_ADDR)?;
+    fffffffff
 }
 struct Clock;
 
